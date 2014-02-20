@@ -1,0 +1,43 @@
+{
+  "name": "TrolleyTracker",
+  "description": "TrolleyTracker provides near realtime location updates for buses of UPRM. This project contains the server application that handles updates from tracking units installed in buseeb application to display updates through a google maps interface. ETAs are also provided to user-specified routes and bus stops.",
+  "version": "0.1.0",
+  "homepage": "https://github.com/cyb3rick/TrolleyTracker",
+  "author": {
+    "name": "Erick Caraballo",
+    "email": "erick.caraballo@upr.edu"
+  },
+  "private": true,
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/cyb3rick/TrolleyTracker"
+  },
+  "bugs": {
+    "url": "https://github.com/cyb3rick/TrolleyTracker/issues"
+  },
+  "licenses": [
+    {
+      "type": "MIT",
+      "url": "https://github.com/cyb3rick/TrolleyTracker/blob/master/LICENSE-MIT"
+    }
+  ],
+  "main": "public/js/trolleyTracker",
+  "engines": {
+    "node": ">= 0.8.0"
+  },
+  "scripts": {
+    "test": "grunt nodeunit"
+  },
+  "dependencies": {
+    "socket.io": "*",
+    "express": "*",
+    "ejs": "*"
+  },
+  "devDependencies": {
+    "grunt-contrib-jshint": "~0.6.4",
+    "grunt-contrib-nodeunit": "~0.2.0",
+    "grunt-contrib-watch": "~0.5.3",
+    "grunt": "~0.4.2"
+  },
+  "keywords": []
+}
