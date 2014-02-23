@@ -2,84 +2,82 @@ var trolleyTracker = trolleyTracker || {};
 
 (function(TT, $) {
 
+	
 	//Elements
 	TT.el = {
 		mapCanvas : $('#map-canvas')[0],
 		infoBox : $('#infobox')[0]
 	};
 
+	
 	//Vars
+
+	//[map & properties]
+	var map;
+	var initCenter = new google.maps.LatLng(18.209438, -67.140543); //UPRM coords	
+	var mapOptions = {
+		minZoom : 16,
+		zoom : 17,
+		maxZoom : 18,
+		center : initCenter,
+		mapTypeId : google.maps.MapTypeId.ROADMAP,
+		disableDefaultUI : true
+	};
+
+	//[demo symbols]
+	var route1Symbol;
+	var route2Symbol;
+	var route3Symbol;
+	var route4Symbol;
+	var route5Symbol;
+
+	//[bus stop markers]
+	var markers = [];
+
+	//[routes]
+	var palacioRoute;
+	var internoRoute;
+	var darlingtonRoute;
+	var terraceRoute;
+	var zoologicoRoute;
+
+	//[communication & updates]
 	var socket;
+	var trolleyUpdates = []; //last update from e/a trolley
 
+	
 	//Initialize
+	
 	function initialize() {
+		// The map... duh!
+		map = new google.maps.Map(TT.el.mapCanvas, mapOptions);
 
-		// MAP PROPERTIES -------------------------------------------------------------------------------------
-		var uprmCoords = new google.maps.LatLng(18.209438, -67.140543);
-		var mapOptions = {
-			zoom : 17,
-			center : uprmCoords,
-			mapTypeId : google.maps.MapTypeId.ROADMAP,
-			disableDefaultUI : true
-		};
-				
-		var map = new google.maps.Map(TT.el.mapCanvas, mapOptions);
+		//Symbols to be attached to routes
+		setupDemoSymbols();
+		
+		//Sets routes and their UI controls
+		setupRoutes();
 
-		var opt = {
-			minZoom : 16,
-			maxZoom : 18
-		};
+		//Display trolley stops on map and
+		//add click listeners for centering
+		setupBusStopMarkers();
 
-		map.setOptions(opt);
+		//Setup InfoBox for bus stop markers
+		setupInfoBox();		
 
-		//ANIMATED SYMBOLS-------------------------------------------------------------------------------------
-		var route1Symbol = {
-			path : google.maps.SymbolPath.FORWARD_CLOSED_ARROW,
-			scale : 5,
-			strokeColor : '#000000',
-			strokeWeight : 2,
-			fillOpacity : 1,
-			fillColor : '#FF0000'
-		};
+		//Animate demo symbols in e/a route
+		animateSymbol(palacioRoute);
+		animateSymbol(internoRoute);
+		animateSymbol(terraceRoute);
+		animateSymbol(darlingtonRoute);
+		animateSymbol(zoologicoRoute);	
+	}
 
-		var route2Symbol = {
-			path : google.maps.SymbolPath.FORWARD_CLOSED_ARROW,
-			scale : 5,
-			strokeColor : '#000000',
-			strokeWeight : 2,
-			fillOpacity : 1,
-			fillColor : '#FFFF00'
-		};
-
-		var route3Symbol = {
-			path : google.maps.SymbolPath.FORWARD_CLOSED_ARROW,
-			scale : 5,
-			strokeColor : '#000000',
-			strokeWeight : 2,
-			fillOpacity : 1,
-			fillColor : '#FF00FF'
-		};
-
-		var route4Symbol = {
-			path : google.maps.SymbolPath.FORWARD_CLOSED_ARROW,
-			scale : 5,
-			strokeColor : '#000000',
-			strokeWeight : 2,
-			fillOpacity : 1,
-			fillColor : '#00FF00'
-		};
-
-		var route5Symbol = {
-			path : google.maps.SymbolPath.FORWARD_CLOSED_ARROW,
-			scale : 5,
-			strokeColor : '#000000',
-			strokeWeight : 2,
-			fillOpacity : 1,
-			fillColor : '#00FFFF'
-		};
-
-		// ROUTE POLYLINES ------------------------------------------------------------------------------------
-		var route1 = new google.maps.Polyline({
+	
+	//Functions
+	
+	function setupRoutes() {
+		palacioRoute = new google.maps.Polyline({
 			visible : false,
 			path : Palacio,
 			strokeColor : '#FF0000',
@@ -92,7 +90,7 @@ var trolleyTracker = trolleyTracker || {};
 			map : map
 		});
 
-		var route2 = new google.maps.Polyline({
+		internoRoute = new google.maps.Polyline({
 			path : Interno,
 			strokeColor : '#FFFF00',
 			strokeOpacity : 0.6,
@@ -104,7 +102,7 @@ var trolleyTracker = trolleyTracker || {};
 			map : map
 		});
 
-		var route3 = new google.maps.Polyline({
+		terraceRoute = new google.maps.Polyline({
 			visible : false,
 			path : Terrace,
 			strokeColor : '#FF00FF',
@@ -117,7 +115,7 @@ var trolleyTracker = trolleyTracker || {};
 			map : map
 		});
 
-		var route4 = new google.maps.Polyline({
+		darlingtonRoute = new google.maps.Polyline({
 			visible : false,
 			path : Darlington,
 			strokeColor : '#00FF00',
@@ -130,7 +128,7 @@ var trolleyTracker = trolleyTracker || {};
 			map : map
 		});
 
-		var route5 = new google.maps.Polyline({
+		zoologicoRoute = new google.maps.Polyline({
 			visible : false,
 			path : Zoologico,
 			strokeColor : '#00FFFF',
@@ -143,201 +141,163 @@ var trolleyTracker = trolleyTracker || {};
 			map : map
 		});
 
-		// UI Controls ----------------------------------------------------------------------------------------
+		// Create divs for the user to control visibility of routes
+		setupUIControls();
+	}
+
+	function setupUIControls() {
+		//Div to hold controls
 		var controlDiv = document.createElement('div');
 
-		var route1Control = new RouteControl(controlDiv, map, 'Click to toggle Route 1 visibility', 'Palacio', route1);
-		var route2Control = new RouteControl(controlDiv, map, 'Click to toggle Route 2 visibility', 'Interno', route2);
-		var route3Control = new RouteControl(controlDiv, map, 'Click to toggle Route 3 visibility', 'Terrace', route3);
-		var route4Control = new RouteControl(controlDiv, map, 'Click to toggle Route 4 visibility', 'Darlington', route4);
-		var route5Control = new RouteControl(controlDiv, map, 'Click to toggle Route 5 visibility', 'Zoologico', route5);
-		var defaultViewControl = new DefaultViewControl(controlDiv, map, uprmCoords);
+		var palacioRouteControl = new RouteControl(controlDiv, map, 'Click to toggle Route 1 visibility', 'Palacio', palacioRoute);
+		var internoRouteControl = new RouteControl(controlDiv, map, 'Click to toggle Route 2 visibility', 'Interno', internoRoute);
+		var terraceRouteControl = new RouteControl(controlDiv, map, 'Click to toggle Route 3 visibility', 'Terrace', terraceRoute);
+		var darlingtonRouteControl = new RouteControl(controlDiv, map, 'Click to toggle Route 4 visibility', 'Darlington', darlingtonRoute);
+		var zoologicoRouteControl = new RouteControl(controlDiv, map, 'Click to toggle Route 5 visibility', 'Zoologico', zoologicoRoute);
+		var defaultViewControl = new DefaultViewControl(controlDiv, map, initCenter);
 
+		// TODO: Find out what's this for.
 		controlDiv.index = 1;
+				
 		map.controls[google.maps.ControlPosition.TOP_RIGHT].push(controlDiv);
+	}
 
-		// TROLLEY STOP MARKERS -------------------------------------------------------------------------------
-		var busstop = 'images/icons-simple/busstop.png';
+	function setupBusStopMarkers() {
 
-		var pala = new google.maps.Marker({
+		var busStopIcon = 'images/icons-simple/busstop.png';
+
+		markers.push(new google.maps.Marker({
 			position : new google.maps.LatLng(18.205942, -67.136433),
 			title : "Palacio",
-			icon : busstop
-		});
+			icon : busStopIcon
+		}));
 
-		var fisi = new google.maps.Marker({
+		markers.push(new google.maps.Marker({
 			position : new google.maps.LatLng(18.210868, -67.139643),
 			title : "Puente Fisica",
-			icon : busstop
-		});
+			icon : busStopIcon
+		}));
 
-		var bibl = new google.maps.Marker({
+		markers.push(new google.maps.Marker({
 			position : new google.maps.LatLng(18.211787, -67.14196),
 			title : "Biblioteca",
-			icon : busstop
-		});
+			icon : busStopIcon
+		}));
 
-		var pati = new google.maps.Marker({
+		markers.push(new google.maps.Marker({
 			position : new google.maps.LatLng(18.211283, -67.140823),
 			title : "Patio Central",
-			icon : busstop
-		});
+			icon : busStopIcon
+		}));
 
-		var admi = new google.maps.Marker({
+		markers.push(new google.maps.Marker({
 			position : new google.maps.LatLng(18.216771, -67.143049),
 			title : "Administracion de Empresas",
-			icon : busstop
-		});
+			icon : busStopIcon
+		}));
 
-		var civi = new google.maps.Marker({
+		markers.push(new google.maps.Marker({
 			position : new google.maps.LatLng(18.21458, -67.139772),
 			title : "Ingenieria Civil",
-			icon : busstop
-		});
+			icon : busStopIcon
+		}));
 
-		var stef = new google.maps.Marker({
+		markers.push(new google.maps.Marker({
 			position : new google.maps.LatLng(18.20968, -67.139021),
 			title : "Stefani",
-			icon : busstop
-		});
+			icon : busStopIcon
+		}));
 
-		var port = new google.maps.Marker({
+		markers.push(new google.maps.Marker({
 			position : new google.maps.LatLng(18.208957, -67.140322),
 			title : "Portico",
-			icon : busstop
-		});
+			icon : busStopIcon
+		}));
 
-		var barc = new google.maps.Marker({
+		markers.push(new google.maps.Marker({
 			position : new google.maps.LatLng(18.207543, -67.139935),
 			title : "Barcelona",
-			icon : busstop
-		});
+			icon : busStopIcon
+		}));
 
-		var asis = new google.maps.Marker({
+		markers.push(new google.maps.Marker({
 			position : new google.maps.LatLng(18.208648, -67.141432),
 			title : "Asistencia Economica",
-			icon : busstop
-		});
+			icon : busStopIcon
+		}));
 
-		var cent = new google.maps.Marker({
+		markers.push(new google.maps.Marker({
 			position : new google.maps.LatLng(18.209935, -67.141472),
 			title : "Centro de Estudiantes",
-			icon : busstop
-		});
+			icon : busStopIcon
+		}));
 
-		var entr = new google.maps.Marker({
+		markers.push(new google.maps.Marker({
 			position : new google.maps.LatLng(18.211064, -67.144672),
 			title : "Entrada Principal",
-			icon : busstop
-		});
+			icon : busStopIcon
+		}));
 
-		var darl = new google.maps.Marker({
+		markers.push(new google.maps.Marker({
 			position : new google.maps.LatLng(18.205683, -67.146185),
 			title : "Darlington",
-			icon : busstop
-		});
+			icon : busStopIcon
+		}));
 
-		var gimn = new google.maps.Marker({
+		markers.push(new google.maps.Marker({
 			position : new google.maps.LatLng(18.212119, -67.143776),
 			title : "Gimnasio",
-			icon : busstop
-		});
+			icon : busStopIcon
+		}));
 
-		var finc = new google.maps.Marker({
+		markers.push(new google.maps.Marker({
 			position : new google.maps.LatLng(18.215461, -67.146341),
 			title : "Finca Alzamora",
-			icon : busstop
-		});
+			icon : busStopIcon
+		}));
 
-		var terr = new google.maps.Marker({
+		markers.push(new google.maps.Marker({
 			position : new google.maps.LatLng(18.215375, -67.14802),
 			title : "Parque Terrace",
-			icon : busstop
-		});
+			icon : busStopIcon
+		}));
 
-		var pine = new google.maps.Marker({
+		markers.push(new google.maps.Marker({
 			position : new google.maps.LatLng(18.210638, -67.143591),
 			title : "Pinero",
-			icon : busstop
-		});
+			icon : busStopIcon
+		}));
 
-		var regi = new google.maps.Marker({
+		markers.push(new google.maps.Marker({
 			position : new google.maps.LatLng(18.217306, -67.144844),
 			title : "Registrador",
-			icon : busstop
-		});
+			icon : busStopIcon
+		}));
 
-		var biol = new google.maps.Marker({
+		markers.push(new google.maps.Marker({
 			position : new google.maps.LatLng(18.211762, -67.138246),
 			title : "Biologia",
-			icon : busstop
-		});
+			icon : busStopIcon
+		}));
 
-		var zool = new google.maps.Marker({
+		markers.push(new google.maps.Marker({
 			position : new google.maps.LatLng(18.215813, -67.133396),
 			title : "Zoologico",
-			icon : busstop
+			icon : busStopIcon
+		}));
+
+		// display 'em
+		markers.forEach(function(marker) {
+			marker.setMap(map);
+			addMarkerListener(map, marker);
 		});
+	}
 
-		// OTHER FUNCS ----------------------------------------------------------------------------------------
-		pala.setMap(map);
-		fisi.setMap(map);
-		bibl.setMap(map);
-		pati.setMap(map);
-		admi.setMap(map);
-		civi.setMap(map);
-		stef.setMap(map);
-		port.setMap(map);
-		barc.setMap(map);
-		asis.setMap(map);
-		cent.setMap(map);
-		entr.setMap(map);
-		darl.setMap(map);
-		gimn.setMap(map);
-		finc.setMap(map);
-		terr.setMap(map);
-		pine.setMap(map);
-		regi.setMap(map);
-		biol.setMap(map);
-		zool.setMap(map);
-
-		animateSymbol(route1);
-		animateSymbol(route2);
-		animateSymbol(route3);
-		animateSymbol(route4);
-		animateSymbol(route5);
-
-		addMarkerListener(map, pala);
-		addMarkerListener(map, fisi);
-		addMarkerListener(map, bibl);
-		addMarkerListener(map, pati);
-		addMarkerListener(map, admi);
-		addMarkerListener(map, civi);
-		addMarkerListener(map, stef);
-		addMarkerListener(map, port);
-		addMarkerListener(map, barc);
-		addMarkerListener(map, asis);
-		addMarkerListener(map, entr);
-		addMarkerListener(map, darl);
-		addMarkerListener(map, gimn);
-		addMarkerListener(map, finc);
-		addMarkerListener(map, terr);
-		addMarkerListener(map, pine);
-		addMarkerListener(map, regi);
-		addMarkerListener(map, biol);
-		addMarkerListener(map, zool);
-
-		var mymarker = new google.maps.Marker({
-			position : new google.maps.LatLng(18.2088, -67.1440),
-			draggable : true
-		});
-		//draggable marker and auto marker on closest point in route
-		//mymarker.setMap(map);
-		//markerDropListener(mymarker,interno_trolley,map);
-
-		// INFOBOX --------------------------------------------------------------------------------------------
+	function setupInfoBox() {
+		//What is the box going to show?
+		// TT.el.infoBox.innerHTML = "Hello";		
 		var infobox = new InfoBox({
-			content : document.getElementById("infobox"),
+			content : TT.el.infoBox,
 			disableAutoPan : false,
 			maxWidth : 150,
 			pixelOffset : new google.maps.Size(-140, 0),
@@ -351,29 +311,82 @@ var trolleyTracker = trolleyTracker || {};
 			closeBoxURL : "http://www.google.com/intl/en_us/mapfiles/close.gif",
 			infoBoxClearance : new google.maps.Size(1, 1)
 		});
+		
+		markers.forEach(function(marker) {
+			google.maps.event.addListener(marker, 'click', function() {
+				infobox.open(map,this);
+				map.panTo(marker.getPosition());
+			});
+		});		
 	}
 
-	//Functions	
+	function setupDemoSymbols() {
+		route1Symbol = {
+			path : google.maps.SymbolPath.FORWARD_CLOSED_ARROW,
+			scale : 5,
+			strokeColor : '#000000',
+			strokeWeight : 2,
+			fillOpacity : 1,
+			fillColor : '#FF0000'
+		};
+
+		route2Symbol = {
+			path : google.maps.SymbolPath.FORWARD_CLOSED_ARROW,
+			scale : 5,
+			strokeColor : '#000000',
+			strokeWeight : 2,
+			fillOpacity : 1,
+			fillColor : '#FFFF00'
+		};
+
+		route3Symbol = {
+			path : google.maps.SymbolPath.FORWARD_CLOSED_ARROW,
+			scale : 5,
+			strokeColor : '#000000',
+			strokeWeight : 2,
+			fillOpacity : 1,
+			fillColor : '#FF00FF'
+		};
+
+		route4Symbol = {
+			path : google.maps.SymbolPath.FORWARD_CLOSED_ARROW,
+			scale : 5,
+			strokeColor : '#000000',
+			strokeWeight : 2,
+			fillOpacity : 1,
+			fillColor : '#00FF00'
+		};
+
+		route5Symbol = {
+			path : google.maps.SymbolPath.FORWARD_CLOSED_ARROW,
+			scale : 5,
+			strokeColor : '#000000',
+			strokeWeight : 2,
+			fillOpacity : 1,
+			fillColor : '#00FFFF'
+		};
+	}
 
 	//Wait until whole page is loaded, then initialize
+	//gmaps map and communication through websockets
 	window.onload = function() {
-		//Attach element listeners =>
-		
+		//Attach element listeners
 
-		//Connect to socket.io and store connection in socket var =>
+		//Initialize gmaps
+		initialize();
+
+		//Connect to socket.io and store connection
 		socket = io.connect(window.location.origin);
 
-		//Subscribe to socket.io map updates =>
+		//Subscribe to mapUpdates events through socket.io
 		if (socket !== undefined) {
 			socket.on('mapUpdate', function(update) {
-				console.log("Update: " + update);
+				var upd = JSON.parse(update);
+				applyUpdate(map, trolleyUpdates, upd);
+
+				console.log(upd); //Debug
 			});
 		}
-
-		//Initialize gmaps =>		
-		initialize(); 
-		// or outside: google.maps.event.addDomListener(window, 'load', initialize); 
-		
 	};
-
 })(trolleyTracker, jQuery);
+
