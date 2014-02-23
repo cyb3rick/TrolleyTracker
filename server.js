@@ -39,10 +39,10 @@ io.listen(app.listen(port)).on('connection', function(socket) {
 		socket.broadcast.emit('mapUpdate', updateStr);		
 		
 		// test write data to text file
-		fs.appendFile("/tmp/updates.txt", updateStr, function(err) {
+		/*fs.appendFile("/tmp/updates.txt", updateStr, function(err) {
 			if (err) throw err;			
 			console.log("Update saved successfully.");
-		});		
+		});*/		
 	});	
 });
 
