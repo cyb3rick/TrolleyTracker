@@ -836,7 +836,6 @@ new google.maps.LatLng(18.2128132517,-67.1427669677)
 			trolley.interval = setInterval(function() {
 
 				var nCoords = internoCoords.length;
-				// TODO: interno_trolley defined in global.js
 
 				// Update current index
 				trolley.currIndex = (trolley.currIndex + 1) % nCoords;
