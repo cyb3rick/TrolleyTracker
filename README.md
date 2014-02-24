@@ -2,13 +2,27 @@
 
 TrolleyTracker provides near realtime location updates for buses of UPRM. This project contains the server application that handles updates from tracking units installed in buseeb application to display updates through a google maps interface. ETAs are also provided to user-specified routes and bus stops.
 
-## Getting Started
-Install the module with: `npm install TrolleyTracker`
+## Prerequisites
+Mongodb Server
+Node.js
+nmp
 
-```javascript
-var TrolleyTracker = require('TrolleyTracker');
-TrolleyTracker.awesome(); // "awesome"
+## Getting Started
 ```
+// Clone repo
+$ git clone https://github.com/cyb3rick/TrolleyTracker.git
+// Go to project folder
+$ cd TrolleyTracker
+// Install dependencies with npm
+$ npm install
+```
+## Running
+```
+// Star mongodb server
+mongod --dbpath /your/dbpath/here
+// Start node server
+node server.js
+// Visit localhost:8080/ and localhost:8080/sim
 
 ## Documentation
 _(Coming soon)_
