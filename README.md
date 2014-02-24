@@ -23,6 +23,7 @@ mongod --dbpath /your/dbpath/here
 // Start node server
 node server.js
 // Visit localhost:8080/ and localhost:8080/sim
+```
 
 ## Documentation
 _(Coming soon)_
