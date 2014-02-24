@@ -853,6 +853,7 @@ new google.maps.LatLng(18.2128132517,-67.1427669677)
 
 				// Send updates to console through websockets
 				if (socket !== undefined) {
+					console.log(socket);
 					socket.emit('update', trolley);
 				}
 			}, 5000);
@@ -898,6 +899,8 @@ new google.maps.LatLng(18.2128132517,-67.1427669677)
 		//Connect to socket.io and store connection in socket var
 		socket = io.connect(window.location.origin);
 		
+		//TODO: Assign name to filter sockets on server
+				
 		//Subscribe to socket.io map updates
 
 		//Initialize gmaps

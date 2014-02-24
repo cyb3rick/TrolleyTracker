@@ -31,7 +31,8 @@
   "dependencies": {
     "socket.io": "*",
     "express": "*",
-    "ejs": "*"
+    "ejs": "*",
+    "mongodb": "*"
   },
   "devDependencies": {
     "grunt-contrib-jshint": "~0.6.4",
